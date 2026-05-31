@@ -28,7 +28,6 @@
             align-items: center;
             height: 100vh;
             overflow: hidden;
-            /* מונע התנהגות רענון מציקה במשיכה למטה בדפדפני מובייל */
             overscroll-behavior-y: contain; 
         }
 
@@ -96,10 +95,11 @@
             position: relative;
             margin: 20px 0;
             height: 560px;
-            /* חשוב להחלקה: מוודא שהאזור מגיב למגע */
             touch-action: pan-y; 
+            perspective: 1000px; /* עומק תלת מימדי עדין */
         }
 
+        /* עיצוב בסיסי לכרטיסייה - ממתינה מימין כברירת מחדל */
         .card {
             background-color: var(--card-core);
             border: 1px solid var(--border-tech);
@@ -112,19 +112,34 @@
             flex-direction: column;
             justify-content: space-between;
             position: absolute;
-            opacity: 0;
-            transform: scale(0.94) translateY(20px);
             pointer-events: none;
-            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease, border-color 0.3s;
+            
+            /* אנימציה חלקה שמדמה פיזיקה של סטורי: מהיר בהתחלה ומאט בסוף */
+            transition: transform 0.45s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s ease, border-color 0.3s;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
         }
 
+        /* 1. כרטיסייה נוכחית (במרכז) */
         .card.active {
             opacity: 1;
-            transform: scale(1) translateY(0);
+            transform: translateX(0) scale(1);
             pointer-events: auto;
             z-index: 2;
             border-color: rgba(0, 245, 212, 0.15);
+        }
+
+        /* 2. כרטיסייה קודמת (מחכה משמאל מחוץ למסך) */
+        .card.prev {
+            transform: translateX(-110%) scale(0.9);
+            opacity: 0;
+            z-index: 1;
+        }
+
+        /* 3. כרטיסייה הבאה (מחכה מימין מחוץ למסך) */
+        .card.next {
+            transform: translateX(110%) scale(0.9);
+            opacity: 0;
+            z-index: 1;
         }
 
         .card-meta-row {
@@ -171,21 +186,10 @@
             padding-left: 5px;
         }
 
-        .card-description::-webkit-scrollbar {
-            width: 4px;
-        }
-        .card-description::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.02);
-            border-radius: 4px;
-        }
-        .card-description::-webkit-scrollbar-thumb {
-            background: var(--accent-electric);
-            border-radius: 4px;
-            opacity: 0.3;
-        }
-        .card-description::-webkit-scrollbar-thumb:hover {
-            opacity: 0.6;
-        }
+        .card-description::-webkit-scrollbar { width: 4px; }
+        .card-description::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.02); border-radius: 4px; }
+        .card-description::-webkit-scrollbar-thumb { background: var(--accent-electric); border-radius: 4px; opacity: 0.3; }
+        .card-description::-webkit-scrollbar-thumb:hover { opacity: 0.6; }
 
         .audience-box {
             background: rgba(0, 0, 0, 0.2);
@@ -246,7 +250,7 @@
             font-size: 0.85rem;
             font-weight: 500;
             transition: all 0.2s;
-            flex: 1; /* מושך את הכפתורים למרכז עכשיו כשאין מספור */
+            flex: 1;
             max-width: 45%;
         }
 
@@ -312,6 +316,25 @@
             dateContainer.innerText = `${day}.${month}.${year}`;
         }
 
+        // פונקציה חכמה שמחלקת תפקידים לכרטיסיות: מי באמצע, מי מימין ומי משמאל
+        function updateCardsState() {
+            const cards = document.querySelectorAll('.card');
+            if (cards.length === 0) return;
+
+            cards.forEach((card, index) => {
+                // מנקה סטטוסים קודמים
+                card.classList.remove('active', 'prev', 'next');
+
+                if (index === currentIdx) {
+                    card.classList.add('active'); // הכרטיסייה שמוצגת כרגע
+                } else if (index === (currentIdx - 1 + cards.length) % cards.length) {
+                    card.classList.add('prev'); // הכרטיסייה הקודמת (מחכה משמאל)
+                } else {
+                    card.classList.add('next'); // הכרטיסייה הבאה (מחכה מימין)
+                }
+            });
+        }
+
         function initApp() {
             setLiveDate();
             
@@ -332,7 +355,7 @@
                 const cardLink = article.link || article.url || '#';
 
                 const cardDiv = document.createElement('div');
-                cardDiv.className = `card ${index === 0 ? 'active' : ''}`;
+                cardDiv.className = 'card'; // האתחול מתבצע ללא מחלקות, הפונקציה תסדר אותן
                 cardDiv.innerHTML = `
                     <div>
                         <div class="card-meta-row">
@@ -352,18 +375,20 @@
                 `;
                 stackContainer.appendChild(cardDiv);
             });
+            
+            // מסדר את הכרטיסיות למקומות שלהן בפעם הראשונה שהאתר עולה
+            updateCardsState();
         }
 
         function changeCard(direction) {
             const cards = document.querySelectorAll('.card');
             if (cards.length === 0) return;
 
-            cards[currentIdx].classList.remove('active');
-            
-            // הלוגיקה המתמטית הזו כבר מבצעת לולאה אינסופית מושלמת
+            // הלוגיקה שמחשבת מהי הכרטיסייה הבאה בתור, כולל לולאה אינסופית
             currentIdx = (currentIdx + direction + cards.length) % cards.length;
             
-            cards[currentIdx].classList.add('active');
+            // מזיז את הכרטיסיות פיזית בעזרת המחלקות
+            updateCardsState();
         }
 
         // ==========================================
@@ -389,15 +414,11 @@
             const diffX = touchstartX - touchendX;
             const diffY = touchstartY - touchendY;
 
-            // בדיקה: האם המשתמש החליק לצדדים או גלל למטה/למעלה?
-            // נבצע החלפת כרטיסייה רק אם התנועה האופקית גדולה משמעותית מהאנכית
             if (Math.abs(diffX) > Math.abs(diffY)) {
                 if (diffX > 50) {
-                    // החלקה שמאלה (מסך מגע בעברית) -> הבא
-                    changeCard(1);
+                    changeCard(1); // החלקה שמאלה מביאה את הכרטיסייה שמימין (הבא)
                 } else if (diffX < -50) {
-                    // החלקה ימינה -> הקודם
-                    changeCard(-1);
+                    changeCard(-1); // החלקה ימינה מביאה את הכרטיסייה שמשמאל (חזור)
                 }
             }
         }
