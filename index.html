@@ -11,7 +11,6 @@
     <title>NEXT AI // TODAY</title>
     
     <link rel="manifest" href="manifest.json">
-    <!-- הוסרה הקריאה ל-Google Fonts כדי למנוע חסימת טעינה (Render-Blocking) -->
 
     <style>
         :root {
@@ -28,7 +27,6 @@
             margin: 0;
             padding: 0;
             background-color: var(--bg-cyber);
-            /* שימוש בפונט המערכת המקומי - טעינה באפס שניות */
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             color: var(--text-photon);
             display: flex;
@@ -60,17 +58,39 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            padding: 24px;
+            padding: 24px 24px 16px 24px;
             box-sizing: border-box;
             position: relative;
             overflow-x: hidden; 
+        }
+
+        /* מחוון התקדמות בסגנון סטורי */
+        .story-progress {
+            display: flex;
+            gap: 4px;
+            width: 100%;
+            margin-bottom: 12px;
+            z-index: 10;
+        }
+
+        .story-segment {
+            flex: 1;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 3px;
+            transition: background 0.3s ease;
+        }
+
+        .story-segment.filled {
+            background: var(--accent-electric);
+            box-shadow: 0 0 5px rgba(0, 245, 212, 0.4);
         }
 
         header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px 0;
+            padding-bottom: 10px;
             border-bottom: 1px solid var(--border-tech);
         }
 
@@ -185,7 +205,6 @@
             padding-left: 5px;
         }
 
-        /* עיצוב רשימות ה-Bullets */
         .card-description ul {
             padding-right: 18px; 
             margin-top: 10px;
@@ -293,6 +312,9 @@
 <body>
 
     <div class="phone-container">
+        <!-- סרגל הסטורי החדש -->
+        <div class="story-progress" id="story-progress"></div>
+
         <header>
             <h1>NEXT AI // <span>TODAY</span></h1>
             <div class="header-date" id="live-date">--.--.----</div>
@@ -335,6 +357,7 @@
 
         let currentIdx = 0;
         const stackContainer = document.getElementById('stack');
+        const progressContainer = document.getElementById('story-progress');
         const fallback = document.getElementById('fallback');
         const dateContainer = document.getElementById('live-date');
 
@@ -346,6 +369,17 @@
             dateContainer.innerText = `${day}.${month}.${year}`;
         }
 
+        function updateStoryProgress() {
+            const segments = document.querySelectorAll('.story-segment');
+            segments.forEach((segment, index) => {
+                if (index <= currentIdx) {
+                    segment.classList.add('filled');
+                } else {
+                    segment.classList.remove('filled');
+                }
+            });
+        }
+
         function renderApp() {
             if (typeof aiArticles === 'undefined' || aiArticles.length === 0) {
                 fallback.innerText = "נא להדביק את הנתונים בתוך בלוק ה-aiArticles בקוד.";
@@ -354,8 +388,15 @@
 
             fallback.style.display = 'none';
             stackContainer.innerHTML = '';
+            progressContainer.innerHTML = ''; // מנקה את פס ההתקדמות למקרה של רענון
             
             aiArticles.forEach((article, index) => {
+                // יצירת מחוון הסטורי למעלה
+                const segment = document.createElement('div');
+                segment.className = 'story-segment' + (index === 0 ? ' filled' : '');
+                progressContainer.appendChild(segment);
+
+                // יצירת הכרטיסייה
                 const cardDiv = document.createElement('div');
                 cardDiv.className = index === 0 ? 'card active' : 'card waiting-right'; 
                 
@@ -415,6 +456,9 @@
                 newCard.classList.remove('waiting-right');
                 newCard.classList.add('active');
             }
+
+            // עדכון המחוונים למעלה לאחר ההחלקה
+            updateStoryProgress();
         }
 
         let touchstartX = 0; let touchstartY = 0; let touchendX = 0; let touchendY = 0;
