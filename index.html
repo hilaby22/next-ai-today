@@ -3,14 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NEXT AI // TODAY</title>
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Rubik:wght@300;400;500;700&display=swap" rel="stylesheet">
-
+    <meta name="theme-color" content="#0b0d10">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="NEXT AI">
+    
+    <title>NEXT AI // TODAY</title>
+    
+    <link rel="manifest" href="manifest.json">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Rubik:wght@300;400;500;700&display=swap" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Rubik:wght@300;400;500;700&display=swap"></noscript>
 
     <style>
         :root {
@@ -34,7 +39,7 @@
             align-items: center;
             height: 100vh;
             overflow: hidden;
-            overscroll-behavior-y: contain; 
+            overscroll-behavior-y: none; 
         }
 
         body::before {
@@ -117,7 +122,7 @@
             width: 100%;
             height: 100%;
             pointer-events: none;
-            transition: transform 0.4s ease-in-out, opacity 0.3s ease-in-out;
+            transition: transform 0.35s ease-out, opacity 0.3s ease-out;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
         }
 
@@ -278,7 +283,7 @@
         </header>
 
         <div class="card-stack" id="stack">
-            <div class="fallback-message" id="fallback">טוען נתונים מהירים...</div>
+            <div class="fallback-message" id="fallback">מייצר תקשורת...</div>
         </div>
 
         <div class="nav-controls">
@@ -292,7 +297,7 @@
         </footer>
     </div>
 
-    <script src="data.js"></script>
+    <script src="data.js" defer></script>
     <script>
         let currentIdx = 0;
         const stackContainer = document.getElementById('stack');
@@ -307,18 +312,12 @@
             dateContainer.innerText = `${day}.${month}.${year}`;
         }
 
-        // ברגע שהסקריפט רץ, הנתונים כבר שם בטוח. אין צורך בלולאת המתנה איטית
-        function initApp() {
-            setLiveDate();
-            
-            if (typeof aiArticles !== 'undefined' && aiArticles.length > 0) {
-                renderApp();
-            } else {
-                fallback.innerText = "שגיאה: לא נמצאו עדכוני חדשות להיום.";
-            }
-        }
-
         function renderApp() {
+            if (typeof aiArticles === 'undefined' || aiArticles.length === 0) {
+                setTimeout(renderApp, 50); // המתנה קצרה אם ה-JS עוד לא נטען
+                return;
+            }
+
             fallback.style.display = 'none';
             stackContainer.innerHTML = '';
             
@@ -368,7 +367,6 @@
                 newCard.style.transition = ''; 
                 newCard.classList.remove('waiting-left');
                 newCard.classList.add('active');
-
             } else { 
                 oldCard.classList.remove('active');
                 oldCard.classList.add('waiting-left');
@@ -386,7 +384,6 @@
         }
 
         let touchstartX = 0; let touchstartY = 0; let touchendX = 0; let touchendY = 0;
-
         stackContainer.addEventListener('touchstart', e => {
             touchstartX = e.changedTouches[0].screenX;
             touchstartY = e.changedTouches[0].screenY;
@@ -403,16 +400,20 @@
             const diffY = touchstartY - touchendY;
 
             if (Math.abs(diffX) > Math.abs(diffY)) {
-                if (diffX < -50) {
-                    changeCard(1); 
-                } else if (diffX > 50) {
-                    changeCard(-1); 
-                }
+                if (diffX < -50) changeCard(1); 
+                else if (diffX > 50) changeCard(-1); 
             }
         }
 
-        // קריאה מיידית
-        initApp();
+        // רישום ה-Service Worker (מנוע האפליקציה)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').catch(err => console.log('SW setup failed', err));
+            });
+        }
+
+        setLiveDate();
+        document.addEventListener('DOMContentLoaded', renderApp);
     </script>
 </body>
 </html>
