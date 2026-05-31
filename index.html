@@ -186,6 +186,29 @@
             padding-left: 5px;
         }
 
+        /* עיצוב רשימות ה-Bullets שקלוד מייצר */
+        .card-description ul {
+            padding-right: 18px; 
+            margin-top: 10px;
+            margin-bottom: 0;
+        }
+
+        .card-description li {
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+
+        /* צביעת הנקודות עצמן בצבע הטורקיז של האפליקציה */
+        .card-description li::marker {
+            color: var(--accent-electric);
+            font-size: 1.1em;
+        }
+
+        .card-description strong {
+            color: var(--text-photon);
+            font-weight: 500;
+        }
+
         .card-description::-webkit-scrollbar { width: 4px; }
         .card-description::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.02); border-radius: 4px; }
         .card-description::-webkit-scrollbar-thumb { background: var(--accent-electric); border-radius: 4px; opacity: 0.3; }
@@ -279,7 +302,7 @@
         </header>
 
         <div class="card-stack" id="stack">
-            <div class="fallback-message" id="fallback">מייצר תקשורת מוצפנת...</div>
+            <div class="fallback-message" id="fallback">טוען נתונים...</div>
         </div>
 
         <div class="nav-controls">
@@ -294,6 +317,15 @@
     </div>
 
     <script>
+        // ניקוי אגרסיבי של ה-Service Worker כדי לשחרר מכשירים שנתקעו בספארי
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) {
+                    registration.unregister();
+                }
+            });
+        }
+
         let currentIdx = 0;
         const stackContainer = document.getElementById('stack');
         const fallback = document.getElementById('fallback');
@@ -305,31 +337,6 @@
             const month = String(now.getMonth() + 1).padStart(2, '0');
             const year = now.getFullYear();
             dateContainer.innerText = `${day}.${month}.${year}`;
-        }
-
-        function loadDataAsync() {
-            // מעקף ספארי: במקום לטעון קוד שעובר סריקת אבטחה כבדה, מושכים כטקסט בלבד
-            fetch('data.js?t=' + Date.now(), { cache: 'no-store' })
-                .then(response => {
-                    if (!response.ok) throw new Error('Network error');
-                    return response.text();
-                })
-                .then(text => {
-                    try {
-                        // חולצים אך ורק את המערך מהטקסט וממירים לנתונים נקיים
-                        const jsonString = text.substring(text.indexOf('['), text.lastIndexOf(']') + 1);
-                        window.aiArticles = JSON.parse(jsonString);
-                        renderApp();
-                    } catch (e) {
-                        // גיבוי למקרה שמבנה הנתונים נשמר קצת אחרת ע"י הפייתון
-                        eval(text);
-                        renderApp();
-                    }
-                })
-                .catch(err => {
-                    fallback.innerText = "שגיאה בתקשורת מול השרת.";
-                    console.error(err);
-                });
         }
 
         function renderApp() {
@@ -352,7 +359,7 @@
                             <div class="source-platform">${article.source_site || article.source || 'רשת הטכנולוגיה'}</div>
                         </div>
                         <div class="card-title">${article.title || 'ללא כותרת'}</div>
-                        <p class="card-description">${article.description || article.summary || ''}</p>
+                        <div class="card-description">${article.description || article.summary || ''}</div>
                     </div>
                     <div>
                         <div class="audience-box">
@@ -364,6 +371,17 @@
                 `;
                 stackContainer.appendChild(cardDiv);
             });
+        }
+
+        // טעינה ישירה כדי לעקוף חסימות FETCH בספארי
+        function loadDataReliably() {
+            const script = document.createElement('script');
+            script.src = 'data.js?v=' + new Date().getTime();
+            script.onload = renderApp;
+            script.onerror = function() {
+                fallback.innerText = "שגיאת רשת. נסה לרענן את העמוד.";
+            };
+            document.body.appendChild(script);
         }
 
         function changeCard(direction) {
@@ -425,15 +443,8 @@
             }
         }
 
-        // רישום סביבת האפליקציה בזיכרון (PWA)
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js').catch(err => console.log('SW setup failed', err));
-            });
-        }
-
         setLiveDate();
-        loadDataAsync();
+        loadDataReliably();
     </script>
 </body>
 </html>
