@@ -4,16 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NEXT AI // TODAY</title>
+    
+    <link rel="preload" href="data.js?v=final" as="script">
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Rubik:wght@300;400;500;700&display=swap');
 
         :root {
-            --bg-cyber: #0b0d10;        /* שחור חלל עמוק */
-            --card-core: #141822;       /* כחול-פחם טכנולוגי לכרטיס */
-            --text-photon: #ffffff;     /* לבן פוטון בוהק */
-            --text-muted: #94a3b8;      /* כסוף פלטינה עמום */
-            --accent-electric: #00f5d4; /* טורקיז ניאון חשמלי */
-            --tag-bg: rgba(0, 245, 212, 0.06); /* הילה של ניאון */
+            --bg-cyber: #0b0d10;        
+            --card-core: #141822;       
+            --text-photon: #ffffff;     
+            --text-muted: #94a3b8;      
+            --accent-electric: #00f5d4; 
+            --tag-bg: rgba(0, 245, 212, 0.06); 
             --border-tech: rgba(255, 255, 255, 0.05);
         }
 
@@ -55,7 +58,7 @@
             padding: 24px;
             box-sizing: border-box;
             position: relative;
-            overflow-x: hidden; /* מונע כל גלילה אופקית בטעות */
+            overflow-x: hidden; 
         }
 
         header {
@@ -94,8 +97,6 @@
             margin: 20px 0;
             height: 560px;
             touch-action: pan-y; 
-            /* הפתרון לבאג במובייל: חותך את מה שמחוץ למסגרת */
-            overflow: hidden; 
         }
 
         .card {
@@ -107,21 +108,19 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            
-            /* עיגון מוחלט כדי למנוע את הבריחה שראינו בצילום המסך */
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            
             pointer-events: none;
-            /* מעבר נקי ומהיר יותר בסגנון סטורי */
-            transition: transform 0.35s ease-out, opacity 0.3s ease-out;
+            
+            /* אנימציית המעבר */
+            transition: transform 0.4s ease-in-out, opacity 0.3s ease-in-out;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
         }
 
-        /* כרטיסייה נוכחית - במרכז ובולטת */
+        /* מצבי מיקום כרטיסייה חכמים */
         .card.active {
             opacity: 1;
             transform: translateX(0);
@@ -130,16 +129,14 @@
             border-color: rgba(0, 245, 212, 0.15);
         }
 
-        /* כרטיסייה קודמת - נדחפת 100% ימינה ומוסתרת לגמרי */
-        .card.prev {
-            transform: translateX(100%);
+        .card.waiting-right {
+            transform: translateX(120%);
             opacity: 0;
             z-index: 1;
         }
 
-        /* כרטיסייה הבאה - נדחפת 100% שמאלה ומוסתרת לגמרי */
-        .card.next {
-            transform: translateX(-100%);
+        .card.waiting-left {
+            transform: translateX(-120%);
             opacity: 0;
             z-index: 1;
         }
@@ -191,7 +188,6 @@
         .card-description::-webkit-scrollbar { width: 4px; }
         .card-description::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.02); border-radius: 4px; }
         .card-description::-webkit-scrollbar-thumb { background: var(--accent-electric); border-radius: 4px; opacity: 0.3; }
-        .card-description::-webkit-scrollbar-thumb:hover { opacity: 0.6; }
 
         .audience-box {
             background: rgba(0, 0, 0, 0.2);
@@ -251,15 +247,8 @@
             cursor: pointer;
             font-size: 0.85rem;
             font-weight: 500;
-            transition: all 0.2s;
             flex: 1;
             max-width: 45%;
-        }
-
-        .nav-btn:hover {
-            color: var(--text-photon);
-            border-color: rgba(255, 255, 255, 0.2);
-            background: rgba(255, 255, 255, 0.02);
         }
 
         footer {
@@ -289,7 +278,7 @@
         </header>
 
         <div class="card-stack" id="stack">
-            <div class="fallback-message" id="fallback">טוען עדכוני מערכת...</div>
+            <div class="fallback-message" id="fallback">טוען נתונים מהירים...</div>
         </div>
 
         <div class="nav-controls">
@@ -303,7 +292,7 @@
         </footer>
     </div>
 
-    <script src="data.js?v=final"></script>
+    <script src="data.js?v=final" defer></script>
     <script>
         let currentIdx = 0;
         const stackContainer = document.getElementById('stack');
@@ -318,89 +307,98 @@
             dateContainer.innerText = `${day}.${month}.${year}`;
         }
 
-        function updateCardsState() {
-            const cards = document.querySelectorAll('.card');
-            if (cards.length === 0) return;
-
-            cards.forEach((card, index) => {
-                card.classList.remove('active', 'prev', 'next');
-
-                if (index === currentIdx) {
-                    card.classList.add('active'); 
-                } else if (index === (currentIdx - 1 + cards.length) % cards.length) {
-                    card.classList.add('prev'); 
-                } else {
-                    card.classList.add('next'); 
-                }
-            });
+        // לולאת המתנה לנתונים - מונע מסך ריק אם קובץ הנתונים שוקל הרבה
+        function checkDataReady() {
+            if (typeof aiArticles !== 'undefined' && aiArticles.length > 0) {
+                renderApp();
+            } else {
+                setTimeout(checkDataReady, 100);
+            }
         }
 
-        function initApp() {
-            setLiveDate();
-            
-            if (typeof aiArticles === 'undefined' || aiArticles.length === 0) {
-                fallback.innerText = "ממתין להזרמת נתונים מקובץ data.js המקומי...";
-                return;
-            }
-            
+        function renderApp() {
             fallback.style.display = 'none';
             stackContainer.innerHTML = '';
             
             aiArticles.forEach((article, index) => {
-                const cardType = article.type || article.category || article.tag || 'עדכון טכנולוגי';
-                const cardSource = article.source_site || article.source || article.site || 'רשת הטכנולוגיה';
-                const cardAudience = article.audience || article.target_audience || article.target || 'אנשי טכנולוגיה';
-                const cardTitle = article.title || 'ללא כותרת';
-                const cardDesc = article.description || article.summary || '';
-                const cardLink = article.link || article.url || '#';
-
                 const cardDiv = document.createElement('div');
-                cardDiv.className = 'card'; 
+                // כרטיסייה ראשונה מוצגת, השאר מחכות מוסתרות בצד ימין
+                cardDiv.className = index === 0 ? 'card active' : 'card waiting-right'; 
+                
                 cardDiv.innerHTML = `
                     <div>
                         <div class="card-meta-row">
-                            <div class="card-tag">${cardType}</div>
-                            <div class="source-platform">${cardSource}</div>
+                            <div class="card-tag">${article.type || article.category || 'עדכון טכנולוגי'}</div>
+                            <div class="source-platform">${article.source_site || article.source || 'רשת הטכנולוגיה'}</div>
                         </div>
-                        <div class="card-title">${cardTitle}</div>
-                        <p class="card-description">${cardDesc}</p>
+                        <div class="card-title">${article.title || 'ללא כותרת'}</div>
+                        <p class="card-description">${article.description || article.summary || ''}</p>
                     </div>
                     <div>
                         <div class="audience-box">
                             <div class="audience-title">קהל יעד ממוקד:</div>
-                            <p class="audience-text">${cardAudience}</p>
+                            <p class="audience-text">${article.audience || 'אנשי טכנולוגיה'}</p>
                         </div>
-                        <a href="${cardLink}" target="_blank" class="action-btn">למעבר לאתר הרשמי ↗</a>
+                        <a href="${article.link || '#'}" target="_blank" class="action-btn">למעבר לאתר הרשמי ↗</a>
                     </div>
                 `;
                 stackContainer.appendChild(cardDiv);
             });
-            
-            updateCardsState();
         }
 
+        // המנגנון הכיווני החכם - מעביר כרטיסיות לפי הכיוון שנבחר
         function changeCard(direction) {
             const cards = document.querySelectorAll('.card');
             if (cards.length === 0) return;
 
+            const oldCard = cards[currentIdx];
             currentIdx = (currentIdx + direction + cards.length) % cards.length;
-            updateCardsState();
+            const newCard = cards[currentIdx];
+
+            if (direction === 1) { // הבא - החלקה ימינה
+                // הכרטיסייה הישנה נוסעת ימינה
+                oldCard.classList.remove('active');
+                oldCard.classList.add('waiting-right');
+                
+                // הכרטיסייה החדשה מוקפצת שמאלה (בלי אנימציה) ואז נכנסת פנימה
+                newCard.style.transition = 'none';
+                newCard.classList.remove('waiting-right', 'active');
+                newCard.classList.add('waiting-left');
+                
+                void newCard.offsetWidth; // מכריח את הדפדפן להתאפס
+                
+                newCard.style.transition = ''; 
+                newCard.classList.remove('waiting-left');
+                newCard.classList.add('active');
+
+            } else { // חזור - החלקה שמאלה
+                // הכרטיסייה הישנה נוסעת שמאלה
+                oldCard.classList.remove('active');
+                oldCard.classList.add('waiting-left');
+                
+                // הכרטיסייה החדשה מוקפצת ימינה ואז נכנסת פנימה
+                newCard.style.transition = 'none';
+                newCard.classList.remove('waiting-left', 'active');
+                newCard.classList.add('waiting-right');
+                
+                void newCard.offsetWidth; 
+                
+                newCard.style.transition = '';
+                newCard.classList.remove('waiting-right');
+                newCard.classList.add('active');
+            }
         }
 
-        // מנגנון החלקה למובייל
-        let touchstartX = 0;
-        let touchstartY = 0;
-        let touchendX = 0;
-        let touchendY = 0;
+        let touchstartX = 0; let touchstartY = 0; let touchendX = 0; let touchendY = 0;
 
-        stackContainer.addEventListener('touchstart', function(event) {
-            touchstartX = event.changedTouches[0].screenX;
-            touchstartY = event.changedTouches[0].screenY;
+        stackContainer.addEventListener('touchstart', e => {
+            touchstartX = e.changedTouches[0].screenX;
+            touchstartY = e.changedTouches[0].screenY;
         }, {passive: true});
 
-        stackContainer.addEventListener('touchend', function(event) {
-            touchendX = event.changedTouches[0].screenX;
-            touchendY = event.changedTouches[0].screenY;
+        stackContainer.addEventListener('touchend', e => {
+            touchendX = e.changedTouches[0].screenX;
+            touchendY = e.changedTouches[0].screenY;
             handleSwipe();
         }, {passive: true});
 
@@ -409,15 +407,16 @@
             const diffY = touchstartY - touchendY;
 
             if (Math.abs(diffX) > Math.abs(diffY)) {
-                if (diffX > 50) {
-                    changeCard(1); 
-                } else if (diffX < -50) {
-                    changeCard(-1); 
+                if (diffX < -50) {
+                    changeCard(1); // האצבע זזה ימינה -> מעבר לדף הבא
+                } else if (diffX > 50) {
+                    changeCard(-1); // האצבע זזה שמאלה -> חזרה לדף הקודם
                 }
             }
         }
 
-        initApp();
+        setLiveDate();
+        checkDataReady(); // מתחיל את האזנה לנתונים
     </script>
 </body>
 </html>
