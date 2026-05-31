@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0b0d10">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="NEXT AI">
+    
+    <title>NEXT AI // TODAY</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="phone-container">
+        <div class="story-progress" id="story-progress"></div>
+
+        <header>
+            <h1>NEXT AI // <span>TODAY</span></h1>
+            <div class="header-date" id="live-date">--.--.----</div>
+        </header>
+
+        <div class="card-stack" id="stack">
+            <div class="fallback-message" id="fallback">מסנכרן נתונים מהסוכן...</div>
+        </div>
+
+        <div class="nav-controls">
+            <button class="nav-btn" onclick="changeCard(-1)">חזור</button>
+            <button class="nav-btn" onclick="changeCard(1)">הבא</button>
+        </div>
+
+        <footer>
+           <div>&copy; 2026 NEXT AI // TODAY. All rights reserved.</div>
+           <div style="margin-top: 5px; opacity: 0.7; letter-spacing: 1px;">Designed & Automated by Hila B.Y</div>
+        </footer>
+    </div>
+
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
